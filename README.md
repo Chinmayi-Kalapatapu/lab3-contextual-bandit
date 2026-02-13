@@ -1,74 +1,65 @@
-# Student Submission Checklist (Lab 3)
+This report details the experimentation done in the context of multi-arm bandits.
 
-Before submitting your Lab 3 assignment, ensure that **all items below are completed**. Submissions that do not follow this checklist may receive partial or no credit.
+Background:
 
----
+This experiment was run on the basis of three main datasets: news\_articles.csv, train\_users.csv and test\_users.csv. The news articles featured 144186 data points with 6 features: link, headline, category, short description, authors and date. The user CSVs had 2000 datapoints with 32 different features, some of which are: age, income, clicks, purchase\_amounts, etc.
 
-## 🔹 Repository and Branching
+Approach
 
-* [ ] The repository is correctly created on GitHub.
-* [ ] All work is committed to **exactly one branch** named
-  `firstname_U20230xxx`.
-* [ ] **No work is pushed to `master`**.
-* [ ] The correct branch is pushed to GitHub.
+1.1 Data Preprocessing
 
----
+After examination and analysis of the data, it was established that the data suffered from missing values and categorical data had to be encoded. The data was preprocessed by removing the user\_id feature due to irrelevance, filling missing values with the median and categorical features were encoded using ordinal encoding.
 
-## 🔹 Notebook Submission
+1.2 Classification
 
-* [ ] Exactly **one** Jupyter Notebook (`.ipynb`) is submitted.
-* [ ] The notebook is placed at the **root of the repository**.
-* [ ] The notebook is named **exactly**:
-  `lab3_results_<roll_number>.ipynb`.
-* [ ] The notebook runs **top to bottom without errors**.
-* [ ] All outputs (plots, tables, metrics) are visible in the notebook.
+For classification, a few different models were experimented with, but due to having the best performance, XGBOOST was finalised and is in the final code. The parameters were initialised as: n\_estimators = 200, max\_depth = 6, learning\_rate = 0.1 and through XG-boost, the validation accuracy had a value of 0.9025
 
----
+1.3 Multi-arm contextual Bandits
 
-## 🔹 Sampler Usage
+In order to build an effective contextual Bandit system, 3 RL strategies were considered: Epsilon Greedy, UCB and Softmax. This section will further explore each strategy and the outcome.
 
-* [ ] The provided `sampler` package is used **without modification**.
-* [ ] The sampler is initialized using your correct roll number `i`.
-* [ ] Rewards are obtained **only** via `sampler.sample(j)`.
-* [ ] No hard-coded or synthetic rewards are used.
+1.3.1 Epsilon Greedy
 
----
+The Epsilon-Greedy algorithm balances exploration and exploitation by:
 
-## 🔹 Contextual Bandit Implementation
+*   Choosing the best-known action with probability **1 − ε**
+    
+*   Exploring randomly with probability **ε**
+    
 
-* [ ] User category is treated as the **context**.
-* [ ] News category is treated as the **bandit arm**.
-* [ ] The arm index mapping follows the specification in the lab handout.
-* [ ] All three algorithms are implemented:
+In this experiment, different values of epsilon were experimented with, \[0.05, 0.1, 0.2, 0.3\] across all the contexts. 
 
-  * Epsilon-Greedy
-  * Upper Confidence Bound (UCB)
-  * SoftMax
+As is observable, as the epsilon value reduces, the final average reward increases however, so does the convergence time of the algorithm.  When e= 0.05, there is an average reward value of 6.6 gained, while e=0.3 only has an average reward of approximately 4.8, although it converges before all the other experiments.
 
----
+Another observation in these experiments is the reward distribution per news Category. As seen, there is a high variance in rewards across all categories. The Crime category, while being the most spread out, also has the highest reward and mean reward compared to the other categories
 
-## 🔹 Evaluation and Plots
+1.3.2 Upper Confidence Bound (UCB)
 
-* [ ] Classification accuracy is reported on `test_users.csv`.
-* [ ] Reinforcement learning simulation is run for **T = 10,000 steps**.
-* [ ] Plots include:
+UCB selects actions based on:
 
-  * Average Reward vs. Time (per context)
-  * Hyperparameter comparison plots
-* [ ] All plots have labeled axes, legends, and titles.
+*   Q(a): estimated reward
+    
+*   N(a): number of times action was chosen
+    
+*   C: exploration coefficient
+    
 
----
+In the case of the experiment, the C values used were \[0.5, 1, 2\]
 
-## 🔹 README.md Requirements
+In UCB, when C=1 or 2, the average reward converged to 7, whereas it is around 5.5 when C= 0.5. Also, when C=0.5, there is an initial local maximum before convergence. When examining the reward distribution per category, the box plots are still a bit wide, although they have fewer negative outliers than E-Greedy. Once again, the crime category has a higher average and the highest reward value in the graph. 
 
-* [ ] README.md is present at the repository root.
-* [ ] It explains the overall approach and design decisions.
-* [ ] It summarizes key results and observations.
-* [ ] It includes clear instructions to reproduce the experiments.
-* [ ] All external references (if any) are properly cited.
+1.3.3 Softmax
 
----
+Softmax dictates the exploration-exploitation strategy through the tweaking of the parameter “τ”.
 
-## Important Note
+High “τ” causes exploration and random like-behaviour where as a low “τ” causes a higher exploitation behaviour. In this experiment, “τ” was initialised to 1, thus allowing for consistent exploration.
 
-> Submissions that do not follow the specified branch name, notebook naming convention, or sampler usage rules may not be evaluated.
+Like the UCB strategy, the average reward over time converges to 7; however, this convergence is faster than that observed in UCB. There are also no observable fluctuations in the graph. By examining the box plots, it is also visible that the reward distributions are tighter than the other strategies, although there are several outliers present under the Tech category.
+
+1.4 Strategy Selection
+
+From the experimental results detailed above, Softmax with τ = 1 achieves the fastest convergence and highest stable average reward (~7), outperforming both UCB and ε-greedy. Hence, Softmax was selected as the optimal strategy for the recommendation system and further coded.
+
+1.5 Recommendation System
+
+Based on the insights gained from all of the experiments, the recommendation system was built with an XGBoost Classifier and a SoftMax strategy was used to dictate the RL algorithm.
